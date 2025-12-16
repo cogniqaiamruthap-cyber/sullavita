@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sulla Vita - Mediterranean Bites & Wood-Fired Pizza</title>
+    <link rel="stylesheet" href="bot.css">
+</head>
+<body>
+    <!-- Floating Chat Button -->
+    <button id="chatButton" class="chat-button" aria-label="Open chat">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+    </button>
+
+    <!-- Chat Widget -->
+    <div id="chatWidget" class="chat-widget">
+        <div class="chat-header">
+            <div class="chat-header-content">
+                <h3>Sulla Vita</h3>
+                <p class="chat-subtitle">Mediterranean Bites & Craft Beer</p>
+            </div>
+            <div class="chat-header-actions">
+                <button id="deleteChat" class="header-button" aria-label="Delete chat" title="Clear conversation">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                </button>
+                <button id="closeChat" class="header-button" aria-label="Close chat" title="Close chat">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div id="chatMessages" class="chat-messages">
+            <div class="message bot-message">
+                <div class="message-content">
+                    <p>👋 Welcome to Sulla Vita!</p>
+                    <p>🍕 Authentic Mediterranean bites, wood-fired pizza & craft beer in beautiful Leavenworth. How can we assist you today?</p>
+                    <div class="quick-replies">
+                        <button class="quick-reply" data-message="What are your hours?">⏰ Hours</button>
+                        <button class="quick-reply" data-message="Tell me about your menu">🍕 Menu</button>
+                        <button class="quick-reply" data-message="Do you have patio seating?">☀️ Patio</button>
+                        <button class="quick-reply" data-message="How do I make a reservation?">🪑 Reservations</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-input-container">
+            <input 
+                type="text" 
+                id="chatInput" 
+                class="chat-input" 
+                placeholder="Type your message..."
+                autocomplete="off"
+            >
+            <button id="sendButton" class="send-button" aria-label="Send message">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script src="bot.js"></script>
+</body>
+</html>

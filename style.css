@@ -192,6 +192,7 @@
  }
 
  .reserve-btn {
+    text-decoration: none;
      background: #a0412f;
      color: #f5f1e8;
      border: none;
@@ -215,12 +216,14 @@
  }
 
  .reserve-btn:hover {
+    text-decoration: none;
      background: #8b3525;
      transform: scale(1.05);
      box-shadow: 0 15px 40px rgba(160, 65, 47, 0.4);
  }
 
  .reserve-btn::before {
+    text-decoration: none;
      content: '↓';
      display: block;
      font-size: 20px;

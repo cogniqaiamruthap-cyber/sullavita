@@ -15,7 +15,7 @@ const BUSINESS_INFO = {
 };
 
 // Your Cloudflare Worker URL
-const WORKER_URL = 'https://yellow-bonus-0caa.cogniqaiamruthap.workers.dev/';
+const WORKER_URL = 'https://odd-unit-89b0.cogniqaiamruthap.workers.dev';
 
 // DOM Elements
 const chatButton = document.getElementById('chatButton');
@@ -37,15 +37,6 @@ sendButton.addEventListener('click', sendMessage);
 chatInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        sendMessage();
-    }
-});
-
-// Quick reply buttons
-document.addEventListener('click', (e) => {
-    if (e.target.classList.contains('quick-reply')) {
-        const message = e.target.getAttribute('data-message');
-        chatInput.value = message;
         sendMessage();
     }
 });
@@ -79,7 +70,18 @@ function deleteChatHistory() {
     }
 }
 
-
+function attachQuickReplyListeners() {
+    const quickReplyButtons = document.querySelectorAll('.quick-reply');
+    quickReplyButtons.forEach(button => {
+        button.addEventListener('click', (e) => {
+            const message = e.target.getAttribute('data-message');
+            if (message) {
+                chatInput.value = message;
+                sendMessage();
+            }
+        });
+    });
+}
 
 function addMessage(content, isUser = false) {
     const messageDiv = document.createElement('div');
@@ -145,6 +147,8 @@ function removeResponseIndicators() {
 
 // Helper function to remove markdown formatting
 function removeMarkdown(text) {
+    if (!text) return '';
+    
     // Remove bold (**text** or __text__)
     text = text.replace(/\*\*(.+?)\*\*/g, '$1');
     text = text.replace(/__(.+?)__/g, '$1');
@@ -153,8 +157,15 @@ function removeMarkdown(text) {
     text = text.replace(/\*(.+?)\*/g, '$1');
     text = text.replace(/_(.+?)_/g, '$1');
     
+    // Remove headers (#)
+    text = text.replace(/^#{1,6}\s+/gm, '');
+    
+    // Remove code blocks
+    text = text.replace(/```[\s\S]*?```/g, '');
+    text = text.replace(/`(.+?)`/g, '$1');
+    
     // Remove other markdown symbols
-    text = text.replace(/[*_~`]/g, '');
+    text = text.replace(/[*_~`#]/g, '');
     
     return text;
 }
@@ -207,6 +218,9 @@ function getQuickResponse(message) {
 
 async function callGeminiViaWorker(message) {
     try {
+        console.log('Calling worker at:', WORKER_URL);
+        console.log('With message:', message);
+        
         const response = await fetch(WORKER_URL, {
             method: 'POST',
             headers: {
@@ -217,19 +231,24 @@ async function callGeminiViaWorker(message) {
             })
         });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            console.error('Worker error:', errorData);
-            throw new Error(`Worker error: ${response.status}`);
-        }
-
+        console.log('Response status:', response.status);
+        
         const data = await response.json();
+        console.log('Response data:', data);
+
+        if (!response.ok) {
+            console.error('Worker error:', data);
+            throw new Error(`Worker returned ${response.status}: ${data.error || 'Unknown error'}`);
+        }
         
         if (data.success && data.reply) {
             // Remove markdown formatting from the response
-            return removeMarkdown(data.reply);
+            const cleanReply = removeMarkdown(data.reply);
+            console.log('Clean reply:', cleanReply);
+            return cleanReply;
         } else {
-            throw new Error('Invalid response from worker');
+            console.error('Invalid response format:', data);
+            throw new Error('Invalid response from worker - missing reply field');
         }
     } catch (error) {
         console.error('Error calling worker:', error);
@@ -318,4 +337,5 @@ function addMessageWithStream(content) {
 // Initialize quick reply listeners on page load
 document.addEventListener('DOMContentLoaded', () => {
     attachQuickReplyListeners();
+    console.log('Chatbot initialized with worker URL:', WORKER_URL);
 });

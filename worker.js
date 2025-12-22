@@ -1,5 +1,5 @@
 // Cloudflare Worker for Sulla Vita Restaurant Chatbot
-// This worker acts as a proxy to the Google Gemini API with business context
+// This worker acts as a proxy to the Google AI Studio API with Gemma 3 12B model
 
 export default {
   async fetch(request, env) {
@@ -39,7 +39,7 @@ export default {
       // Parse the incoming request
       const body = await request.json();
       const userMessage = body.message || body.prompt || '';
-      const model = body.model || 'gemini-2.5-flash';
+      const model = body.model || 'gemma-3-4b-it'; // Gemma 3 4B - Faster responses
       
       if (!userMessage) {
         return new Response(JSON.stringify({ 
@@ -91,10 +91,10 @@ Guidelines:
 
 Current user question: ${userMessage}`;
 
-      // Construct the Gemini API request
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+      // Construct the Google AI Studio API request for Gemma models
+      const gemmaUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
       
-      const geminiRequest = {
+      const gemmaRequest = {
         contents: [
           {
             role: "user",
@@ -107,9 +107,9 @@ Current user question: ${userMessage}`;
         ],
         generationConfig: {
           temperature: body.temperature || 0.7,
-          topK: body.topK || 40,
-          topP: body.topP || 0.95,
-          maxOutputTokens: body.maxOutputTokens || 500,
+          topK: body.topK || 20,
+          topP: body.topP || 0.8,
+          maxOutputTokens: body.maxOutputTokens || 300,
         },
         safetySettings: [
           {
@@ -119,30 +119,38 @@ Current user question: ${userMessage}`;
           {
             category: "HARM_CATEGORY_HATE_SPEECH",
             threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
           }
         ]
       };
 
-      // Call the Gemini API
-      const geminiResponse = await fetch(geminiUrl, {
+      // Call the Google AI Studio API
+      const gemmaResponse = await fetch(gemmaUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(geminiRequest),
+        body: JSON.stringify(gemmaRequest),
       });
 
-      const geminiData = await geminiResponse.json();
+      const gemmaData = await gemmaResponse.json();
 
       // Check for errors
-      if (!geminiResponse.ok) {
-        console.error('Gemini API Error:', geminiData);
+      if (!gemmaResponse.ok) {
+        console.error('Gemma API Error:', gemmaData);
         return new Response(JSON.stringify({ 
           success: false,
-          error: geminiData.error?.message || 'Failed to get response from Gemini',
-          details: geminiData
+          error: gemmaData.error?.message || 'Failed to get response from Gemma',
+          details: gemmaData
         }), {
-          status: geminiResponse.status,
+          status: gemmaResponse.status,
           headers: { 
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*'
@@ -151,12 +159,12 @@ Current user question: ${userMessage}`;
       }
 
       // Extract the response text
-      const responseText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || 'I apologize, but I\'m having trouble generating a response. Please call us at +1 509-679-1114 for assistance.';
+      const responseText = gemmaData.candidates?.[0]?.content?.parts?.[0]?.text || 'I apologize, but I\'m having trouble generating a response. Please call us at +1 509-679-1114 for assistance.';
 
       // Return the response in the format bot.js expects (using 'reply' not 'response')
       return new Response(JSON.stringify({
         success: true,
-        reply: responseText,  // FIXED: Changed from 'response' to 'reply'
+        reply: responseText,
         model: model
       }), {
         status: 200,

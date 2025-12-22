@@ -15,7 +15,7 @@ const BUSINESS_INFO = {
 };
 
 // Your Cloudflare Worker URL
-const WORKER_URL = 'https://odd-unit-89b0.cogniqaiamruthap.workers.dev';
+const WORKER_URL = 'https://shy-sea-f6b0.cogniqaiamruthap.workers.dev/';
 
 // DOM Elements
 const chatButton = document.getElementById('chatButton');

@@ -1,5 +1,5 @@
-// Cloudflare Worker for Sulla Vita Restaurant Chatbot
-// This worker acts as a proxy to the Google AI Studio API with Gemma 3 12B model
+// Universal Cloudflare Worker for Multiple Business Chatbots
+// Supports unlimited businesses - just add their config!
 
 export default {
   async fetch(request, env) {
@@ -38,8 +38,15 @@ export default {
 
       // Parse the incoming request
       const body = await request.json();
-      const userMessage = body.message || body.prompt || '';
-      const model = body.model || 'gemma-3-4b-it'; // Gemma 3 4B - Faster responses
+      let userMessage = body.message || body.prompt || '';
+      const businessId = body.business || body.businessId || 'default';
+      const model = body.model || 'gemma-3-4b-it';
+      
+      // Extract only the actual customer message (remove system prompt if present)
+      if (userMessage.includes('Customer:')) {
+        const parts = userMessage.split('Customer:');
+        userMessage = parts[parts.length - 1].trim();
+      }
       
       if (!userMessage) {
         return new Response(JSON.stringify({ 
@@ -54,8 +61,58 @@ export default {
         });
       }
 
-      // System prompt with business information
-      const systemPrompt = `You are a friendly and helpful customer service assistant for Sulla Vita, a Mediterranean restaurant in Leavenworth, Washington.
+      // Business configurations - Add new businesses here!
+      const businessConfigs = {
+        'sacred-keepsakes': {
+          name: 'Sacred Keepsakes',
+          systemPrompt: `You are an intelligent English-speaking customer support assistant for "Sacred Keepsakes".
+
+Business Information:
+- Business Name: Sacred Keepsakes
+- Website: https://www.sacredkeepsakes.co.uk/
+- Email: help@sacredkeepsakes.co.uk
+- Address: 183 Wigan Lower Road, Wigan, WN6 8LD
+- What we do: We create personalised engraved memorial keepsakes including jewellery, boxes, garden keepsakes, and grave keepsakes to honor loved ones.
+- Tagline: "Treasured memories, beautifully kept."
+
+Products & Services:
+- Personalised memorial jewellery (necklaces, bracelets, keyrings)
+- Engraved memorial boxes
+- Garden memorial keepsakes
+- Grave keepsakes and plaques
+- Custom engraving services
+- Photo engraving options
+- Text and name personalisation
+
+Common Customer Questions:
+- What types of memorial keepsakes do you offer? (Answer: We offer personalised jewellery, memorial boxes, garden keepsakes, and grave plaques)
+- How long does engraving take? (Answer: Typically 3-5 business days for personalisation, plus shipping time)
+- Can I add photos to keepsakes? (Answer: Yes, we offer photo engraving on many products)
+- What materials do you use? (Answer: We use high-quality stainless steel, sterling silver, wood, stone, and other durable materials)
+- Do you ship internationally? (Answer: Yes, we ship to most countries. Contact us for specific shipping details)
+- How do I place an order? (Answer: Visit our website at sacredkeepsakes.co.uk, browse products, and add items to cart. You can customize during checkout)
+- Can I return personalized items? (Answer: Due to the custom nature, we cannot accept returns unless there is a defect. Please contact us if there are any issues)
+
+Your behavior:
+- ALWAYS reply in clear, friendly, compassionate English
+- Be empathetic and sensitive as customers are often dealing with loss
+- Keep answers SHORT and conversational (2-4 sentences maximum)
+- NO bullet points, NO asterisks, NO markdown formatting, NO special symbols
+- Write in plain sentences only, like normal conversation
+- NEVER use placeholders like [Your Name], [Insert X], or any text in square brackets
+- NEVER introduce yourself with a name - just be helpful immediately
+- Start responses naturally without formal greetings or placeholder text
+- If asked about products not listed, politely suggest contacting via email for custom requests
+- If asked about pricing, direct them to the website or suggest emailing for quotes
+- Be warm, supportive, and professional
+- Never say you don't know something - provide helpful guidance or direct to contact email
+- For booking/ordering, direct customers to the website or email
+- IMPORTANT: Only offer condolences when the customer explicitly mentions a loss or grief. For general inquiries, product questions, or other topics, respond normally without mentioning loss.`
+        },
+
+        'sulla-vita': {
+          name: 'Sulla Vita',
+          systemPrompt: `You are a friendly and helpful customer service assistant for Sulla Vita, a Mediterranean restaurant in Leavenworth, Washington.
 
 Business Information:
 - Name: Sulla Vita
@@ -87,11 +144,32 @@ Guidelines:
 - For hours, direct to website or phone since they vary
 - For reservations, mention walk-in policy
 - For catering inquiries, direct to email or phone
-- Always be positive about the restaurant and customer experience
+- Always be positive about the restaurant and customer experience`
+        },
 
-Current user question: ${userMessage}`;
+        // ADD NEW BUSINESSES HERE - Just copy this template:
+        // 'your-business-id': {
+        //   name: 'Your Business Name',
+        //   systemPrompt: `Your complete system prompt here...`
+        // },
 
-      // Construct the Google AI Studio API request for Gemma models
+        'default': {
+          name: 'Customer Support',
+          systemPrompt: `You are a helpful and friendly customer support assistant. Provide clear, concise, and helpful responses to customer inquiries.`
+        }
+      };
+
+      // Get the appropriate business config
+      const config = businessConfigs[businessId] || businessConfigs['default'];
+      
+      // Build the full prompt with system instructions and user message separated
+      const fullPrompt = `${config.systemPrompt}
+
+Customer question: ${userMessage}
+
+Respond directly to the customer's question. Be helpful and conversational.`;
+
+      // Construct the Google AI Studio API request
       const gemmaUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
       
       const gemmaRequest = {
@@ -100,7 +178,7 @@ Current user question: ${userMessage}`;
             role: "user",
             parts: [
               {
-                text: systemPrompt
+                text: fullPrompt
               }
             ]
           }
@@ -159,13 +237,17 @@ Current user question: ${userMessage}`;
       }
 
       // Extract the response text
-      const responseText = gemmaData.candidates?.[0]?.content?.parts?.[0]?.text || 'I apologize, but I\'m having trouble generating a response. Please call us at +1 509-679-1114 for assistance.';
+      const responseText = gemmaData.candidates?.[0]?.content?.parts?.[0]?.text || 'I apologize, but I\'m having trouble generating a response. Please contact us for assistance.';
 
-      // Return the response in the format bot.js expects (using 'reply' not 'response')
+      // Return the response in multiple formats for compatibility
       return new Response(JSON.stringify({
         success: true,
         reply: responseText,
-        model: model
+        response: responseText,
+        message: responseText,
+        text: responseText,
+        model: model,
+        business: config.name
       }), {
         status: 200,
         headers: { 
